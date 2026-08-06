@@ -65,19 +65,10 @@
         v->clear = (defaults.clear) ? defaults.clear : VTableInstance(type).clear; \
         v->at = (defaults.at) ? defaults.at : VTableInstance(type).at; \
         v->find = (defaults.find) ? defaults.find : VTableInstance(type).find; \
+        v->copy = (defaults.copy) ? defaults.copy : VTableInstance(type).copy; \
         \
         return v; \
     } \
-    \
-    static inline void delete(concat_layer1(Vector_, type))(concat_layer1(Vector_, type) *v) { \
-        if (!*v) return; \
-        for (size_t idx = 0; idx < (*v)->size; idx++) { \
-            delete(type)((*v)->data[idx]); \
-        } \
-        free((*v)->data); \
-        free(*v); \
-        *v = NULL; \
-    }
 
 #define Vector(type) concat_layer1(Vector_, type)
 #define newVector(type, ...) \

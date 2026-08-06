@@ -22,6 +22,11 @@ static inline int32_t _vector_default_hash(const void *) {
     return 0;
 }
 
+typedef enum : int8_t {
+    RETAIN_MEMORY,
+    FREE_MEMORY
+} MemoryCleanup;
+
 #define VTableFunctions(id, type) \
     CmpFunc cmp; \
     HashFunc hash; \
@@ -29,9 +34,10 @@ static inline int32_t _vector_default_hash(const void *) {
     void (*push)(id, type); \
     void (*insert)(id, type, int32_t); \
     type (*pop)(id); \
-    void (*clear)(id); \
+    void (*clear)(id, MemoryCleanup); \
     type (*at)(id, int32_t); \
     int32_t (*find)(id, type); \
+    void (*copy)(id, id, MemoryCleanup);
 
 #define VTableType(id, type) \
     typedef struct concat_layer1(_vtable_, type) { \
@@ -44,13 +50,27 @@ static inline int32_t _vector_default_hash(const void *) {
         } \
         qsort(self->data, self->size, sizeof(type), self->cmp); \
     } \
-    static inline void concat_layer1(_vector_default_clear_, type)(id self) { \
+    static inline void delete(id)(id *v) { \
+        if (!v || !*v) return; \
+        for (size_t idx = 0; idx < (*v)->size; idx++) { \
+            delete(type)(&(*v)->data[idx]); \
+        } \
+        free((*v)->data); \
+        free(*v); \
+        *v = NULL; \
+    } \
+    static inline void concat_layer1(_vector_default_clear_, type)(id self, MemoryCleanup mc) { \
+        if (mc == FREE_MEMORY) { \
+            for (size_t idx = 0; idx < self->size; idx++) { \
+                delete(type)(&(self->data[idx])); \
+            } \
+        } \
         self->size = 0; \
     } \
     static inline void concat_layer1(_vector_default_push_, type)(id self, type elem) { \
         if (self->size == self->capacity) { \
             type *tmp = self->data; \
-            tmp = realloc(self->data,  2 * self->capacity * sizeof(type)); \
+            tmp = realloc(self->data, 2 * self->capacity * sizeof(type)); \
             if (!tmp) { \
                 raise(ERROR, "Cannot expand vector " RED "(out-of-memory)" RESET ". Vector elements will remain unchanged."); \
             } \
@@ -61,9 +81,9 @@ static inline int32_t _vector_default_hash(const void *) {
     } \
     static inline void concat_layer1(_vector_default_insert_, type)(id self, type elem, int32_t idx) { \
         int32_t size = (int32_t)self->size; \
-        idx = (idx < 0) ? (size + idx) : idx; \
+        idx = (idx < 0) ? (size + idx + 1) : idx; \
         \
-        size_t new_size = (idx < 0) ? (self->size + (size_t)(-idx)) : (((size_t)idx <= self->size) ? (self->size + 1) : ((size_t)idx + 1)); \
+        size_t new_size = (idx < 0) ? (self->size + (size_t)(-idx) + 1) : (((size_t)idx <= self->size) ? (self->size + 1) : ((size_t)idx + 1)); \
         size_t new_cap = (self->capacity) ? self->capacity : VECTOR_DEFAULT_CAPACITY; \
         \
         if (new_size > self->capacity) { \
@@ -78,10 +98,13 @@ static inline int32_t _vector_default_hash(const void *) {
         } \
         \
         if (idx < 0) { \
-            memmove(self->data + (size_t)(-idx), self->data, self->size * sizeof(type)); \
+            memmove(self->data + (size_t)(-idx) + 1, self->data, self->size * sizeof(type)); \
+            memset(self->data + 1, 0, (size_t)(-idx) * sizeof(type)); \
             idx = 0; \
         } else if ((size_t)idx <= self->size) { \
             memmove(self->data + (size_t)idx + 1, self->data + (size_t)idx, (self->size - (size_t)idx) * sizeof(type)); \
+        } else { \
+            memset(self->data + self->size, 0, ((size_t)idx - self->size) * sizeof(type)); \
         } \
         \
         self->size = new_size; \
@@ -123,6 +146,26 @@ static inline int32_t _vector_default_hash(const void *) {
         idx = (idx < 0) ? (size + idx) : idx; \
         return self->data[idx]; \
     } \
+    static inline void concat_layer1(_vector_default_copy_, type)(id self, id other, MemoryCleanup mc) { \
+        if (mc == FREE_MEMORY) { \
+            for (size_t idx = 0; idx < self->size; idx++) { \
+                delete(type)(&(self->data[idx])); \
+            } \
+        } \
+        if (other->size > self->size) { \
+            if (self->capacity < other->size) { \
+                size_t new_cap = self->capacity; \
+                while (new_cap < other->size) new_cap *= 2; \
+                type *tmp =  self->data; \
+                tmp = realloc(self->data, new_cap * sizeof(type)); \
+                if (!tmp) return; \
+                self->data = tmp; \
+                self->capacity = new_cap; \
+            } \
+        } \
+        self->size = other->size; \
+        memcpy(self->data, other->data, self->size * sizeof(*self->data)); \
+    } \
     static concat_layer1(VTable_, type) concat_layer2(VTable_, concat_layer2(vector_, type)) = { \
         .cmp = _vector_default_cmp, \
         .hash = _vector_default_hash, \
@@ -132,7 +175,8 @@ static inline int32_t _vector_default_hash(const void *) {
         .pop = concat_layer1(_vector_default_pop_, type), \
         .clear = concat_layer1(_vector_default_clear_, type), \
         .at = concat_layer1(_vector_default_at_, type), \
-        .find = concat_layer1(_vector_default_find_, type) \
+        .find = concat_layer1(_vector_default_find_, type), \
+        .copy = concat_layer1(_vector_default_copy_, type) \
     }; \
 
 #define VTable(type) concat_layer1(VTable_, type)

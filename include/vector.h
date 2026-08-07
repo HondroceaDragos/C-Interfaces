@@ -11,24 +11,24 @@
 #define implements(s)
 
 #define VectorType(type) \
-    typedef struct concat_layer1(_vector_, type) { \
+    typedef struct concat_layer2(_vector_, type) { \
         type *data; \
         size_t capacity; \
         size_t size; \
         \
-        VTableFunctions(struct concat_layer1(_vector_, type) *, type) \
-    } *concat_layer1(Vector_, type); \
+        VTableFunctions(struct concat_layer2(_vector_, type) *, type) \
+    } *concat_layer2(Vector_, type); \
     \
-    VTableType(concat_layer1(Vector_, type), type) \
+    VTableType(concat_layer2(Vector_, type), type) \
     \
-    struct concat_layer1(_vector_defaults_, type) { \
+    struct concat_layer2(_vector_defaults_, type) { \
         size_t capacity; \
         Array(type) using; \
-        VTableFunctions(concat_layer1(Vector_, type), type) \
+        VTableFunctions(concat_layer2(Vector_, type), type) \
     }; \
     \
-    static inline concat_layer1(Vector_, type) concat_layer1(newVector_, type)(struct concat_layer1(_vector_defaults_, type) defaults) { \
-        concat_layer1(Vector_, type) v = calloc(1, sizeof(*v)); \
+    static inline concat_layer2(Vector_, type) concat_layer2(newVector_, type)(struct concat_layer2(_vector_defaults_, type) defaults) { \
+        concat_layer2(Vector_, type) v = calloc(1, sizeof(*v)); \
         if (!v) { \
             raise(ERROR, "Cannot create vector " RED "(out-of-memory)" RESET ". Returning nullptr."); \
             return nullptr; \
@@ -57,6 +57,7 @@
         \
         v->cmp = (defaults.cmp) ? defaults.cmp : VTableInstance(type).cmp; \
         v->hash = (defaults.hash) ? defaults.hash : VTableInstance(type).hash; \
+        v->fmt = (defaults.fmt) ? defaults.fmt : VTableInstance(type).fmt; \
         v->sort = (defaults.sort) ? defaults.sort : VTableInstance(type).sort; \
         \
         v->push = (defaults.push) ? defaults.push : VTableInstance(type).push; \
@@ -66,13 +67,15 @@
         v->at = (defaults.at) ? defaults.at : VTableInstance(type).at; \
         v->find = (defaults.find) ? defaults.find : VTableInstance(type).find; \
         v->copy = (defaults.copy) ? defaults.copy : VTableInstance(type).copy; \
+        v->toString = (defaults.toString) ? defaults.toString : VTableInstance(type).toString; \
+        v->resize = (defaults.resize) ? defaults.resize : VTableInstance(type).resize; \
         \
         return v; \
     } \
 
-#define Vector(type) concat_layer1(Vector_, type)
+#define Vector(type) concat_layer2(Vector_, type)
 #define newVector(type, ...) \
-    concat_layer1(newVector_, type)((struct concat_layer1(_vector_defaults_, type)){__VA_ARGS__})
+    concat_layer2(newVector_, type)((struct concat_layer2(_vector_defaults_, type)){__VA_ARGS__})
 
 #define forVector_primitive(i, once, value, vec) \
     for (size_t i = 0; i < (vec)->size; i++) \

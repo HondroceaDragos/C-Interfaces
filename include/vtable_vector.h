@@ -5,6 +5,7 @@
 #include "./raise.h"
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <string.h>
 
 #define VECTOR_DEFAULT_CAPACITY 16
@@ -30,6 +31,7 @@ typedef enum : int8_t {
 #define VTableFunctions(id, type) \
     CmpFunc cmp; \
     HashFunc hash; \
+    int8_t *(*fmt)(const type); \
     void (*sort)(id); \
     void (*push)(id, type); \
     void (*insert)(id, type, int32_t); \
@@ -37,18 +39,24 @@ typedef enum : int8_t {
     void (*clear)(id, MemoryCleanup); \
     type (*at)(id, int32_t); \
     int32_t (*find)(id, type); \
-    void (*copy)(id, id, MemoryCleanup);
+    void (*copy)(id, id, MemoryCleanup); \
+    int8_t *(*toString)(id); \
+    void (*resize)(id, size_t, type, MemoryCleanup); \
 
 #define VTableType(id, type) \
-    typedef struct concat_layer1(_vtable_, type) { \
+    typedef struct concat_layer2(_vtable_, type) { \
         VTableFunctions(id, type) \
-    } concat_layer1(VTable_, type); \
-    static inline void concat_layer1(_vector_default_sort_, type)(id self) { \
+    } concat_layer2(VTable_, type); \
+    static inline void concat_layer2(_vector_default_sort_, type)(id self) { \
         if (!self->size) { \
             raise(WARNING, "Vector is " YELLOW "empty " RESET "(size = %zu). No sorting to-be-done.", self->size); \
             return; \
         } \
         qsort(self->data, self->size, sizeof(type), self->cmp); \
+    } \
+    static inline int8_t *concat_layer2(_vector_default_fmt_, type)(const type) { \
+        raise(WARNING, "Vector uses " YELLOW "default formatting function " RESET "(cannot deduce type)."); \
+        return strdup("[?]"); \
     } \
     static inline void delete(id)(id *v) { \
         if (!v || !*v) return; \
@@ -59,7 +67,7 @@ typedef enum : int8_t {
         free(*v); \
         *v = NULL; \
     } \
-    static inline void concat_layer1(_vector_default_clear_, type)(id self, MemoryCleanup mc) { \
+    static inline void concat_layer2(_vector_default_clear_, type)(id self, MemoryCleanup mc) { \
         if (mc == FREE_MEMORY) { \
             for (size_t idx = 0; idx < self->size; idx++) { \
                 delete(type)(&(self->data[idx])); \
@@ -67,7 +75,7 @@ typedef enum : int8_t {
         } \
         self->size = 0; \
     } \
-    static inline void concat_layer1(_vector_default_push_, type)(id self, type elem) { \
+    static inline void concat_layer2(_vector_default_push_, type)(id self, type elem) { \
         if (self->size == self->capacity) { \
             type *tmp = self->data; \
             tmp = realloc(self->data, 2 * self->capacity * sizeof(type)); \
@@ -79,7 +87,7 @@ typedef enum : int8_t {
         } \
         self->data[self->size++] = elem; \
     } \
-    static inline void concat_layer1(_vector_default_insert_, type)(id self, type elem, int32_t idx) { \
+    static inline void concat_layer2(_vector_default_insert_, type)(id self, type elem, int32_t idx) { \
         int32_t size = (int32_t)self->size; \
         idx = (idx < 0) ? (size + idx + 1) : idx; \
         \
@@ -110,7 +118,7 @@ typedef enum : int8_t {
         self->size = new_size; \
         self->data[idx] = elem; \
     } \
-    static inline type concat_layer1(_vector_default_pop_, type)(id self) { \
+    static inline type concat_layer2(_vector_default_pop_, type)(id self) { \
         if (!self->size) { \
             raise(WARNING, "Vector is " YELLOW "empty " RESET "(size = %zu). Returning 0.", self->size); \
             return (type){0}; \
@@ -118,7 +126,7 @@ typedef enum : int8_t {
         type ret = self->data[--self->size]; \
         return ret; \
     } \
-    static inline int32_t concat_layer1(_vector_default_find_, type)(id self, type dst) { \
+    static inline int32_t concat_layer2(_vector_default_find_, type)(id self, type dst) { \
         if (self->cmp == _vector_default_cmp) { \
             raise(WARNING, "Vector uses " YELLOW "default comparing function " RESET "(always returning \'true\'). Destination not found."); \
             return notfound; \
@@ -129,7 +137,7 @@ typedef enum : int8_t {
         \
         return notfound; \
     } \
-    static inline type concat_layer1(_vector_default_at_, type)(id self, int32_t idx) { \
+    static inline type concat_layer2(_vector_default_at_, type)(id self, int32_t idx) { \
         int32_t size = (int32_t)self->size; \
         if (!size) { \
             raise(WARNING, "Vector is " YELLOW "empty " RESET "(size = %zu). Returning 0.", self->size); \
@@ -146,7 +154,7 @@ typedef enum : int8_t {
         idx = (idx < 0) ? (size + idx) : idx; \
         return self->data[idx]; \
     } \
-    static inline void concat_layer1(_vector_default_copy_, type)(id self, id other, MemoryCleanup mc) { \
+    static inline void concat_layer2(_vector_default_copy_, type)(id self, id other, MemoryCleanup mc) { \
         if (mc == FREE_MEMORY) { \
             for (size_t idx = 0; idx < self->size; idx++) { \
                 delete(type)(&(self->data[idx])); \
@@ -158,7 +166,9 @@ typedef enum : int8_t {
                 while (new_cap < other->size) new_cap *= 2; \
                 type *tmp =  self->data; \
                 tmp = realloc(self->data, new_cap * sizeof(type)); \
-                if (!tmp) return; \
+                if (!tmp) { \
+                    raise(ERROR, "Cannot expand vector " RED "(out-of-memory)" RESET ". Vector elements will remain unchanged."); \
+                } \
                 self->data = tmp; \
                 self->capacity = new_cap; \
             } \
@@ -166,20 +176,82 @@ typedef enum : int8_t {
         self->size = other->size; \
         memcpy(self->data, other->data, self->size * sizeof(*self->data)); \
     } \
-    static concat_layer1(VTable_, type) concat_layer2(VTable_, concat_layer2(vector_, type)) = { \
+    static inline int8_t *concat_layer2(_vector_default_tostring_, type)(id self) { \
+        size_t bsize = 0; \
+        size_t bcap = 2048; \
+        \
+        int8_t *buffer = calloc(bcap, sizeof(*buffer)); \
+        buffer[0] = '\0'; \
+        \
+        int32_t slen = snprintf(buffer, bcap, "Vector(%zu <= %zu) {\n\t", self->size, self->capacity); \
+        bsize += slen; \
+        size_t size = self->size; \
+        \
+        for (size_t idx = 0; idx < size; idx++) { \
+            int8_t *element = self->fmt(self->data[idx]); \
+            size_t elen = strlen(element); \
+            size_t space = bsize + elen; \
+            \
+            if (space > bcap) { \
+                size_t new_cap = bcap; \
+                while (space > new_cap) new_cap *= 2; \
+                int8_t *tmp = buffer; \
+                tmp = realloc(buffer, new_cap * sizeof(*buffer)); \
+                if (!tmp) { \
+                    raise(ERROR, "Cannot build vector string " RED "(out-of-memory)" RESET ". Vector elements will remain unchanged."); \
+                    free(element); \
+                    free(buffer); \
+                    return strdup("[?]"); \
+                } \
+                buffer = tmp; \
+                bcap = new_cap; \
+            } \
+            \
+            const int8_t *sep = (idx + 1 < size) ? ", " : "\n"; \
+            bsize += snprintf(buffer + bsize, bcap - bsize, "%s%s", element, sep); \
+            free(element); \
+        } \
+        \
+        snprintf(buffer + bsize, bcap - bsize, "}"); \
+        return buffer; \
+    } \
+    static inline void concat_layer2(_vector_default_resize_, type)(id self, size_t size, type element, MemoryCleanup mc) { \
+        if (mc == FREE_MEMORY) { \
+            for (size_t idx = 0; idx < self->size; idx++) { \
+                delete(type)(&(self->data[idx])); \
+            } \
+        } \
+        \
+        type *tmp = self->data; \
+        tmp = realloc(self->data, size * sizeof(type)); \
+        if (!tmp) { \
+            raise(ERROR, "Cannot resize vector " RED "(out-of-memory)" RESET ". Vector elements will remain unchanged."); \
+        } \
+        self->capacity = size; \
+        self->data = tmp; \
+        \
+        self->size = self->capacity; \
+        for (size_t idx = 0; idx < self->size; idx++) { \
+            self->data[idx] = element; \
+        } \
+    } \
+    static concat_layer2(VTable_, type) concat_layer2(VTable_, concat_layer2(vector_, type)) = { \
         .cmp = _vector_default_cmp, \
         .hash = _vector_default_hash, \
-        .sort = concat_layer1(_vector_default_sort_, type), \
-        .push = concat_layer1(_vector_default_push_, type), \
-        .insert = concat_layer1(_vector_default_insert_, type), \
-        .pop = concat_layer1(_vector_default_pop_, type), \
-        .clear = concat_layer1(_vector_default_clear_, type), \
-        .at = concat_layer1(_vector_default_at_, type), \
-        .find = concat_layer1(_vector_default_find_, type), \
-        .copy = concat_layer1(_vector_default_copy_, type) \
+        .fmt = concat_layer2(_vector_default_fmt_, type), \
+        .sort = concat_layer2(_vector_default_sort_, type), \
+        .push = concat_layer2(_vector_default_push_, type), \
+        .insert = concat_layer2(_vector_default_insert_, type), \
+        .pop = concat_layer2(_vector_default_pop_, type), \
+        .clear = concat_layer2(_vector_default_clear_, type), \
+        .at = concat_layer2(_vector_default_at_, type), \
+        .find = concat_layer2(_vector_default_find_, type), \
+        .copy = concat_layer2(_vector_default_copy_, type), \
+        .toString = concat_layer2(_vector_default_tostring_, type), \
+        .resize = concat_layer2(_vector_default_resize_, type) \
     }; \
 
-#define VTable(type) concat_layer1(VTable_, type)
+#define VTable(type) concat_layer2(VTable_, type)
 #define VTableInstance(type) concat_layer2(VTable_, concat_layer2(vector_, type))
 
 #endif

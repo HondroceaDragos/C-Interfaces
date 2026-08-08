@@ -62,6 +62,7 @@
         \
         v->push = (defaults.push) ? defaults.push : VTableInstance(type).push; \
         v->insert = (defaults.insert) ? defaults.insert : VTableInstance(type).insert; \
+        v->remove = (defaults.remove) ? defaults.remove : VTableInstance(type).remove; \
         v->pop = (defaults.pop) ? defaults.pop : VTableInstance(type).pop; \
         v->clear = (defaults.clear) ? defaults.clear : VTableInstance(type).clear; \
         v->at = (defaults.at) ? defaults.at : VTableInstance(type).at; \
@@ -69,6 +70,10 @@
         v->copy = (defaults.copy) ? defaults.copy : VTableInstance(type).copy; \
         v->toString = (defaults.toString) ? defaults.toString : VTableInstance(type).toString; \
         v->resize = (defaults.resize) ? defaults.resize : VTableInstance(type).resize; \
+        v->empty = (defaults.empty) ? defaults.empty : VTableInstance(type).empty; \
+        v->multiPush.vector = (defaults.multiPush.vector) ? defaults.multiPush.vector : VTableInstance(type).multiPush.vector; \
+        v->multiPush.array = (defaults.multiPush.array) ? defaults.multiPush.array : VTableInstance(type).multiPush.array; \
+        v->drain = (defaults.drain) ? defaults.drain : VTableInstance(type).drain; \
         \
         return v; \
     } \

@@ -72,7 +72,7 @@ typedef enum : int8_t {
         } \
         free((*v)->data); \
         free(*v); \
-        *v = NULL; \
+        *v = nullptr; \
     } \
     static inline void concat_layer2(_vector_default_clear_, type)(id self, MemoryCleanup mc) { \
         if (mc == FREE_MEMORY) { \

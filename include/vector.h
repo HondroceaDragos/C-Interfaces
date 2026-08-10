@@ -4,11 +4,16 @@
 #include "./array.h"
 #include "./vtable_vector.h"
 #include "./raise.h"
+#include "./iterator.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define implements(s)
+
+static inline void *_vector_next(Iterator i, size_t esize) {
+    return (int8_t *)i->ref + esize;
+}
 
 #define VectorType(type) \
     typedef struct concat_layer2(_vector_, type) { \
@@ -82,11 +87,11 @@
 #define newVector(type, ...) \
     concat_layer2(newVector_, type)((struct concat_layer2(_vector_defaults_, type)){__VA_ARGS__})
 
-#define forVector_primitive(i, once, value, vec) \
-    for (size_t i = 0; i < (vec)->size; i++) \
-        for (value = &(vec)->data[i], *once = (void*)1; once; once = nullptr)
+#define forVector_primitive(i, once, vec, acc) \
+    for (Iterator i = newIterator((vec)->data, (vec)->size); i; iterator_advance(&i, _vector_next, sizeof(*(vec)->data))) \
+        for (acc = (typeof(*(vec)->data) *)i->ref, *once = (void *)1; once; once = 0)
 
-#define forVector(value, vec) \
-    forVector_primitive(concat_layer2(_i_, __COUNTER__), concat_layer2(_once_, __COUNTER__), value, vec)
+#define forVector(acc, vec) \
+    forVector_primitive(concat_layer2(_i_, __COUNTER__), concat_layer2(_once_, __COUNTER__), vec, acc)
 
 #endif

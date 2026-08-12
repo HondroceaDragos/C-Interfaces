@@ -18,7 +18,7 @@ static inline void *_array_next(Iterator i, size_t esize) {
 #define newArray(type, ...) (Array(type)){(type[])__VA_ARGS__, .size = sizeof((type[])__VA_ARGS__) / sizeof(type)}
 
 #define forArray_primitive(i, once, arr, acc) \
-    for (Iterator i = newIterator((arr).data, (arr).size); i; iterator_advance(&i, _array_next, sizeof(*(arr).data))) \
+    for (Iterator i = newIterator((arr).data, (arr).size); i && i->size; iterator_advance(&i, _array_next, sizeof(*(arr).data))) \
         for (acc = (typeof(*(arr).data) *)i->ref, *once = (void *)1; once; once = 0)
 
 #define forArray(acc, arr) \

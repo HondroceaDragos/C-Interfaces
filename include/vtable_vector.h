@@ -28,7 +28,7 @@ typedef enum : int8_t {
     FREE_MEMORY
 } MemoryCleanup;
 
-#define VTableFunctions(id, type) \
+#define VectorVTableFunctions(id, type) \
     CmpFunc cmp; \
     HashFunc hash; \
     int8_t *(*fmt)(const type); \
@@ -50,10 +50,10 @@ typedef enum : int8_t {
     } multiPush; \
     type *(*drain)(id, size_t); \
 
-#define VTableType(id, type) \
-    typedef struct concat_layer2(_vtable_, type) { \
-        VTableFunctions(id, type) \
-    } concat_layer2(VTable_, type); \
+#define VectorVTableType(id, type) \
+    typedef struct concat_layer2(_vector_vtable_, type) { \
+        VectorVTableFunctions(id, type) \
+    } concat_layer2(VectorVTable_, type); \
     static inline void concat_layer2(_vector_default_sort_, type)(id self) { \
         if (!self->size) { \
             raise(WARNING, "Vector is " YELLOW "empty " RESET "(size = %zu). No sorting to-be-done.", self->size); \
@@ -271,6 +271,9 @@ typedef enum : int8_t {
         return false; \
     } \
     static inline void concat_layer2(_vector_default_multipush_vector_, type)(id self, id other) { \
+        if (self == other) { \
+            raise(ERROR, "Cannot " RED "push " RESET "a "  RED "self-reference" RESET "."); \
+        } \
         if (self->size + other->size >= self->capacity) { \
             size_t new_cap = self->capacity; \
             while (new_cap < self->size + other->size) new_cap *= 2; \
@@ -318,7 +321,7 @@ typedef enum : int8_t {
         \
         return ret; \
     } \
-    static concat_layer2(VTable_, type) concat_layer2(VTable_, concat_layer2(vector_, type)) = { \
+    static concat_layer2(VectorVTable_, type) concat_layer2(VectorVTable_, concat_layer2(vector_, type)) = { \
         .cmp = _vector_default_cmp, \
         .hash = _vector_default_hash, \
         .fmt = concat_layer2(_vector_default_fmt_, type), \
@@ -339,7 +342,7 @@ typedef enum : int8_t {
         .drain = concat_layer2(_vector_default_drain_, type) \
     }; \
 
-#define VTable(type) concat_layer2(VTable_, type)
-#define VTableInstance(type) concat_layer2(VTable_, concat_layer2(vector_, type))
+#define VectorVTable(type) concat_layer2(VectorVTable_, type)
+#define VectorVTableInstance(type) concat_layer2(VectorVTable_, concat_layer2(vector_, type))
 
 #endif

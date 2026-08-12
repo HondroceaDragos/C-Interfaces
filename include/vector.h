@@ -21,15 +21,15 @@ static inline void *_vector_next(Iterator i, size_t esize) {
         size_t capacity; \
         size_t size; \
         \
-        VTableFunctions(struct concat_layer2(_vector_, type) *, type) \
+        VectorVTableFunctions(struct concat_layer2(_vector_, type) *, type) \
     } *concat_layer2(Vector_, type); \
     \
-    VTableType(concat_layer2(Vector_, type), type) \
+    VectorVTableType(concat_layer2(Vector_, type), type) \
     \
     struct concat_layer2(_vector_defaults_, type) { \
         size_t capacity; \
         Array(type) using; \
-        VTableFunctions(concat_layer2(Vector_, type), type) \
+        VectorVTableFunctions(concat_layer2(Vector_, type), type) \
     }; \
     \
     static inline concat_layer2(Vector_, type) concat_layer2(newVector_, type)(struct concat_layer2(_vector_defaults_, type) defaults) { \
@@ -60,25 +60,25 @@ static inline void *_vector_next(Iterator i, size_t esize) {
             } \
         } \
         \
-        v->cmp = (defaults.cmp) ? defaults.cmp : VTableInstance(type).cmp; \
-        v->hash = (defaults.hash) ? defaults.hash : VTableInstance(type).hash; \
-        v->fmt = (defaults.fmt) ? defaults.fmt : VTableInstance(type).fmt; \
-        v->sort = (defaults.sort) ? defaults.sort : VTableInstance(type).sort; \
+        v->cmp = (defaults.cmp) ? defaults.cmp : VectorVTableInstance(type).cmp; \
+        v->hash = (defaults.hash) ? defaults.hash : VectorVTableInstance(type).hash; \
+        v->fmt = (defaults.fmt) ? defaults.fmt : VectorVTableInstance(type).fmt; \
+        v->sort = (defaults.sort) ? defaults.sort : VectorVTableInstance(type).sort; \
         \
-        v->push = (defaults.push) ? defaults.push : VTableInstance(type).push; \
-        v->insert = (defaults.insert) ? defaults.insert : VTableInstance(type).insert; \
-        v->remove = (defaults.remove) ? defaults.remove : VTableInstance(type).remove; \
-        v->pop = (defaults.pop) ? defaults.pop : VTableInstance(type).pop; \
-        v->clear = (defaults.clear) ? defaults.clear : VTableInstance(type).clear; \
-        v->at = (defaults.at) ? defaults.at : VTableInstance(type).at; \
-        v->find = (defaults.find) ? defaults.find : VTableInstance(type).find; \
-        v->copy = (defaults.copy) ? defaults.copy : VTableInstance(type).copy; \
-        v->toString = (defaults.toString) ? defaults.toString : VTableInstance(type).toString; \
-        v->resize = (defaults.resize) ? defaults.resize : VTableInstance(type).resize; \
-        v->empty = (defaults.empty) ? defaults.empty : VTableInstance(type).empty; \
-        v->multiPush.vector = (defaults.multiPush.vector) ? defaults.multiPush.vector : VTableInstance(type).multiPush.vector; \
-        v->multiPush.array = (defaults.multiPush.array) ? defaults.multiPush.array : VTableInstance(type).multiPush.array; \
-        v->drain = (defaults.drain) ? defaults.drain : VTableInstance(type).drain; \
+        v->push = (defaults.push) ? defaults.push : VectorVTableInstance(type).push; \
+        v->insert = (defaults.insert) ? defaults.insert : VectorVTableInstance(type).insert; \
+        v->remove = (defaults.remove) ? defaults.remove : VectorVTableInstance(type).remove; \
+        v->pop = (defaults.pop) ? defaults.pop : VectorVTableInstance(type).pop; \
+        v->clear = (defaults.clear) ? defaults.clear : VectorVTableInstance(type).clear; \
+        v->at = (defaults.at) ? defaults.at : VectorVTableInstance(type).at; \
+        v->find = (defaults.find) ? defaults.find : VectorVTableInstance(type).find; \
+        v->copy = (defaults.copy) ? defaults.copy : VectorVTableInstance(type).copy; \
+        v->toString = (defaults.toString) ? defaults.toString : VectorVTableInstance(type).toString; \
+        v->resize = (defaults.resize) ? defaults.resize : VectorVTableInstance(type).resize; \
+        v->empty = (defaults.empty) ? defaults.empty : VectorVTableInstance(type).empty; \
+        v->multiPush.vector = (defaults.multiPush.vector) ? defaults.multiPush.vector : VectorVTableInstance(type).multiPush.vector; \
+        v->multiPush.array = (defaults.multiPush.array) ? defaults.multiPush.array : VectorVTableInstance(type).multiPush.array; \
+        v->drain = (defaults.drain) ? defaults.drain : VectorVTableInstance(type).drain; \
         \
         return v; \
     } \
@@ -88,7 +88,7 @@ static inline void *_vector_next(Iterator i, size_t esize) {
     concat_layer2(newVector_, type)((struct concat_layer2(_vector_defaults_, type)){__VA_ARGS__})
 
 #define forVector_primitive(i, once, vec, acc) \
-    for (Iterator i = newIterator((vec)->data, (vec)->size); i; iterator_advance(&i, _vector_next, sizeof(*(vec)->data))) \
+    for (Iterator i = newIterator((vec)->data, (vec)->size); i && i->size; iterator_advance(&i, _vector_next, sizeof(*(vec)->data))) \
         for (acc = (typeof(*(vec)->data) *)i->ref, *once = (void *)1; once; once = 0)
 
 #define forVector(acc, vec) \

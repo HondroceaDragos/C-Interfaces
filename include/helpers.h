@@ -12,8 +12,8 @@
 
 #define defer(func) [[gnu::cleanup(func)]]
 
-#define deleteDefine(type) void concat_layer2(_delete_, type)(type *self)
-#define deleteType(type) void concat_layer2(_delete_, type)(type *obj) {}
+#define deleteDefine(type) static inline void concat_layer2(_delete_, type)(type *self)
+#define deleteType(type) static inline void concat_layer2(_delete_, type)(type *obj) {}
 #define delete(type) concat_layer2(_delete_, type)
 
 #endif

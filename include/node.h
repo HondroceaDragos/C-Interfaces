@@ -3,53 +3,43 @@
 
 #include "./raise.h"
 #include "./helpers.h"
+#include "./vtable_node.h"
 #include <stdlib.h>
 
-typedef struct _node_link *NodeLink;
+typedef struct _node_link NodeLink;
 struct _node_link {
-    NodeLink next;
-    NodeLink prev;
+    NodeLink *next;
+    NodeLink *prev;
 };
 
 static inline NodeLink newNodeLink(struct _node_link defaults) {
-    NodeLink nl = (NodeLink)calloc(1, sizeof(*nl));
-    if (!nl) {
-        raise(ERROR, "Cannot " RED "create node " RESET "(out-of-memory).");
-    }
-
-    nl->next = (defaults.next) ? defaults.next : nullptr;
-    nl->prev = (defaults.prev) ? defaults.prev : nullptr;
-
-    return nl;
-}
-
-deleteDefine(NodeLink) {
-    if (!self || !*self) return;
-    free(*self);
-    *self = nullptr;
+    return (NodeLink) {
+        .next = defaults.next,
+        .prev = defaults.prev,
+    };
 }
 
 #define NodeType(type) \
     typedef struct concat_layer2(_node_, type) { \
         type value; \
         NodeLink link; \
+        \
+        NodeVTableFunctions(struct concat_layer2(_node_, type) *, type) \
     } *concat_layer2(Node_, type); \
     \
-    static inline void delete(concat_layer2(Node_, type))(concat_layer2(Node_, type) *n) { \
-        if (!n || !*n) return; \
-        delete(type)(&(*n)->value); \
-        delete(NodeLink)(&(*n)->link); \
-        free(*n); \
-        *n = nullptr; \
-    } \
+    NodeVTableType(concat_layer2(Node_, type), type) \
+    \
     static inline concat_layer2(Node_, type) concat_layer2(newNode_, type)(struct concat_layer2(_node_, type) defaults) { \
         concat_layer2(Node_, type) n = calloc(1, sizeof(*n)); \
         if (!n) { \
             raise(ERROR, "Cannot " RED "create node " RESET "(out-of-memory)."); \
         } \
         \
-        n->value = (defaults.value) ? defaults.value : (type){0}; \
-        n->link = (defaults.link) ? defaults.link : newNodeLink((struct _node_link){0}); \
+        n->value = defaults.value; \
+        n->link =  (defaults.link.next || defaults.link.prev) ? defaults.link : newNodeLink((struct _node_link){0}); \
+        \
+        n->fmt = (defaults.fmt) ? defaults.fmt : NodeVTableInstance(type).fmt; \
+        n->toString = (defaults.toString) ? defaults.toString : NodeVTableInstance(type).toString; \
         \
         return n;  \
     }

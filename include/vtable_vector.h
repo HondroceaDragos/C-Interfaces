@@ -176,7 +176,7 @@ typedef enum : int8_t {
             return (type){0}; \
         } \
         if (idx < -size) { \
-            raise(WARNING, "Index " YELLOW "out-of-bounds" RESET ". idx = %d is not in range [%d, -1] Returning 0.", idx, -size); \
+            raise(WARNING, "Index " YELLOW "out-of-bounds" RESET ". idx = %d is not in range [%d, -1]. Returning 0.", idx, -size); \
             return (type){0}; \
         } \
         idx = (idx < 0) ? (size + idx) : idx; \

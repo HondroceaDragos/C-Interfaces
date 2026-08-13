@@ -31,11 +31,21 @@ LinkedList _newLinkedList(struct _linked_list defaults) {
 
     l->head = defaults.head;
     l->tail = defaults.tail;
+    l->tail = (l->tail) ? l->tail : l->head;
     l->size = (l->head) ? 1 : 0;
 
     l->at = (defaults.at) ? defaults.at : LinkedListVTableInstance.at;
+
     l->push.rear = (defaults.push.rear) ? defaults.push.rear : LinkedListVTableInstance.push.rear;
     l->push.front = (defaults.push.front) ? defaults.push.front : LinkedListVTableInstance.push.front;
+
+    l->pop.rear = (defaults.pop.rear) ? defaults.pop.rear : LinkedListVTableInstance.pop.rear;
+    l->pop.front = (defaults.pop.front) ? defaults.pop.front : LinkedListVTableInstance.pop.front;
+
+    l->reverse = (defaults.reverse) ? defaults.reverse : LinkedListVTableInstance.reverse;
+    l->toString = (defaults.toString) ? defaults.toString : LinkedListVTableInstance.toString;
+
+    l->insert = (defaults.insert) ? defaults.insert : LinkedListVTableInstance.insert;
 
     return l;
 }

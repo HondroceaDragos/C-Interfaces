@@ -7,6 +7,13 @@
 
 #include "./fortype.h"
 
+typedef enum : int8_t {
+    RETAIN_MEMORY,
+    FREE_MEMORY
+} MemoryCleanup;
+
+#define notfound -1
+
 #define concat_layer1(a, b) a##b
 #define concat_layer2(a, b) concat_layer1(a, b)
 

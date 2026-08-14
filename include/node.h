@@ -5,6 +5,7 @@
 #include "./helpers.h"
 #include "./vtable_node.h"
 #include <stdlib.h>
+#include <stddef.h>
 
 typedef struct _node_link NodeLink;
 struct _node_link {
@@ -18,6 +19,13 @@ static inline NodeLink newNodeLink(struct _node_link defaults) {
         .prev = defaults.prev,
     };
 }
+
+static inline void *_getNode_primitive(NodeLink *nl, size_t offset) {
+    return (nl) ? ((int8_t *)nl) - offset : nullptr;
+}
+
+#define getNode(type, _node_link) \
+    (Node(type))(_getNode_primitive(_node_link, offsetof(struct concat_layer2(_node_, type), link)))
 
 #define NodeType(type) \
     typedef struct concat_layer2(_node_, type) { \

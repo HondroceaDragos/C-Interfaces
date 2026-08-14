@@ -9,7 +9,6 @@
 #include <string.h>
 
 #define VECTOR_DEFAULT_CAPACITY 16
-#define notfound -1
 
 typedef int32_t (*CmpFunc)(const void *, const void *);
 typedef int32_t (*HashFunc)(const void *);
@@ -22,11 +21,6 @@ static inline int32_t _vector_default_hash(const void *) {
     raise(WARNING, "Vector uses " YELLOW "default hashing function " RESET "(always returning \'0\').");
     return 0;
 }
-
-typedef enum : int8_t {
-    RETAIN_MEMORY,
-    FREE_MEMORY
-} MemoryCleanup;
 
 #define VectorVTableFunctions(id, type) \
     CmpFunc cmp; \

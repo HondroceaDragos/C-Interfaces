@@ -6,7 +6,6 @@
 #include "./vtable_list.h"
 #include <stdlib.h>
 #include <stdint.h>
-#include <stddef.h>
 
 static inline void *_linked_list_next(Iterator i, size_t) {
     NodeLink *ni = (NodeLink *)i->ref;
@@ -46,6 +45,11 @@ LinkedList _newLinkedList(struct _linked_list defaults) {
     l->toString = (defaults.toString) ? defaults.toString : LinkedListVTableInstance.toString;
 
     l->insert = (defaults.insert) ? defaults.insert : LinkedListVTableInstance.insert;
+    l->empty = (defaults.empty) ? defaults.empty : LinkedListVTableInstance.empty;
+    l->clear = (defaults.clear) ? defaults.clear : LinkedListVTableInstance.clear;
+    l->reachable = (defaults.reachable) ? defaults.reachable : LinkedListVTableInstance.reachable;
+
+    l->remove = (defaults.remove) ? defaults.remove : LinkedListVTableInstance.remove;
 
     return l;
 }
@@ -57,7 +61,7 @@ LinkedList _newLinkedList(struct _linked_list defaults) {
         for (acc = (typeof(*(l)->head) *)i->ref, *once = (void *)1; once; once = 0)
 
 #define forLinkedList(acc, l) \
-    raise(WARNING, "Using " YELLOW "iterator " RESET "over a " YELLOW "list " RESET "causes " YELLOW "Undefined Behaviour" RESET "."); \
+    raise(WARNING, "Using " YELLOW "iterator " RESET "over a " YELLOW "list " RESET "requires an " YELLOW "explicit cast" RESET "."); \
     forLinkedList_primitive(concat_layer2(_i_, __COUNTER__), concat_layer2(_once_, __COUNTER__), l, acc)
 
 #endif

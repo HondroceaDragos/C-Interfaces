@@ -10,8 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-static inline void *_deque_next(Iterator i, size_t esize) {
-    return nullptr;
+static inline void *_deque_next(Iterator i, size_t) {
+    NodeLink *ni = (NodeLink *)i->ref;
+    return ni->next;
 }
 
 #define DequeType(type) \
@@ -38,6 +39,30 @@ static inline void *_deque_next(Iterator i, size_t esize) {
         } \
         \
         dq->fmt = (defaults.fmt) ? defaults.fmt : DequeVTableInstance(type).fmt; \
+        \
+        if (defaults.using.data) { \
+            type *data = defaults.using.data; \
+            size_t size = defaults.using.size; \
+            \
+            if (size) { \
+                Node(type) head = newNode(type, data[0], .fmt = dq->fmt); \
+                Node(type) tail = newNode(type, data[size - 1], .fmt = dq->fmt); \
+                dq->head = head; \
+                dq->tail = tail; \
+                \
+                NodeLink *iter = &head->link; \
+                for (size_t idx = 1; idx < size - 1; idx++) { \
+                    Node(type) n = newNode(type, defaults.using.data[idx], .fmt = dq->fmt); \
+                    n->link.prev = iter; \
+                    iter->next = &n->link; \
+                    iter = &n->link; \
+                } \
+                tail->link.prev = iter; \
+                iter->next = &tail->link; \
+                dq->size = size; \
+            } \
+        } \
+        \
         dq->toString = (defaults.toString) ? defaults.toString : DequeVTableInstance(type).toString; \
         \
         dq->push.front = (defaults.push.front) ? defaults.push.front : DequeVTableInstance(type).push.front; \
@@ -50,11 +75,20 @@ static inline void *_deque_next(Iterator i, size_t esize) {
         dq->empty = (defaults.empty) ? defaults.empty : DequeVTableInstance(type).empty; \
         \
         dq->reachable = (defaults.reachable) ? defaults.reachable : DequeVTableInstance(type).reachable; \
+        dq->peek.front = (defaults.peek.front) ? defaults.peek.front : DequeVTableInstance(type).peek.front; \
+        dq->peek.rear = (defaults.peek.rear) ? defaults.peek.rear : DequeVTableInstance(type).peek.rear; \
         return dq; \
     } \
 
 #define Deque(type) concat_layer2(Deque_, type)
 #define newDeque(type, ...) \
     concat_layer2(newDeque_, type)((struct concat_layer2(_deque_defaults_, type)){__VA_ARGS__})
+
+#define forDeque_primitive(i, once, l, acc) \
+    for (Iterator i = newIterator(&(l)->head->link, (l)->size); i && i->size; iterator_advance(&i, _deque_next, 0)) \
+        for (acc = &((typeof(*(l)->head) *)_getNode_primitive(i->ref, offsetof(typeof(*(l)->head), link)))->value, *once = (void *)1; once; once = 0)
+
+#define forDeque(acc, l) \
+    forDeque_primitive(concat_layer2(_i_, __COUNTER__), concat_layer2(_once_, __COUNTER__), l, acc)
 
 #endif

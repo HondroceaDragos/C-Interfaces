@@ -22,7 +22,7 @@ typedef struct _linked_list {
 
 ListVTableType(LinkedList)
 
-LinkedList _newLinkedList(struct _linked_list defaults) {
+static inline LinkedList _newLinkedList(struct _linked_list defaults) {
     LinkedList l = (LinkedList)calloc(1, sizeof(*l));
     if (!l) {
         raise(ERROR, "Cannot create list " RED "(out-of-memory)" RESET ".");

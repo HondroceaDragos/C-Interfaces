@@ -10,9 +10,6 @@
 
 #define VECTOR_DEFAULT_CAPACITY 16
 
-typedef int32_t (*CmpFunc)(const void *, const void *);
-typedef int32_t (*HashFunc)(const void *);
-
 static inline int32_t _vector_default_cmp(const void *, const void *) { 
     raise(WARNING, "Vector uses " YELLOW "default comparing function " RESET "(always returning \'true\').");
     return true;
@@ -34,7 +31,10 @@ static inline int32_t _vector_default_hash(const void *) {
     void (*clear)(id, MemoryCleanup); \
     type (*at)(id, int32_t); \
     int32_t (*find)(id, type); \
-    void (*copy)(id, id, MemoryCleanup); \
+    struct { \
+        void (*vector)(id, id, MemoryCleanup); \
+        void (*array)(id, concat_layer2(Array_, type), MemoryCleanup); \
+    } copy; \
     int8_t *(*toString)(id); \
     void (*resize)(id, size_t, type, MemoryCleanup); \
     bool (*empty)(id); \
@@ -176,7 +176,7 @@ static inline int32_t _vector_default_hash(const void *) {
         idx = (idx < 0) ? (size + idx) : idx; \
         return self->data[idx]; \
     } \
-    static inline void concat_layer2(_vector_default_copy_, type)(id self, id other, MemoryCleanup mc) { \
+    static inline void concat_layer2(_vector_default_copy_vector_, type)(id self, id other, MemoryCleanup mc) { \
         if (mc == FREE_MEMORY) { \
             for (size_t idx = 0; idx < self->size; idx++) { \
                 delete(type)(&(self->data[idx])); \
@@ -197,6 +197,28 @@ static inline int32_t _vector_default_hash(const void *) {
         } \
         self->size = other->size; \
         memcpy(self->data, other->data, self->size * sizeof(*self->data)); \
+    } \
+    static inline void concat_layer2(_vector_default_copy_array_, type)(id self, concat_layer2(Array_, type) other, MemoryCleanup mc) { \
+        if (mc == FREE_MEMORY) { \
+            for (size_t idx = 0; idx < self->size; idx++) { \
+                delete(type)(&(self->data[idx])); \
+            } \
+        } \
+        if (other.size > self->size) { \
+            if (self->capacity < other.size) { \
+                size_t new_cap = self->capacity; \
+                while (new_cap < other.size) new_cap *= 2; \
+                type *tmp =  self->data; \
+                tmp = realloc(self->data, new_cap * sizeof(type)); \
+                if (!tmp) { \
+                    raise(ERROR, "Cannot expand vector " RED "(out-of-memory)" RESET ". Vector elements will remain unchanged."); \
+                } \
+                self->data = tmp; \
+                self->capacity = new_cap; \
+            } \
+        } \
+        self->size = other.size; \
+        memcpy(self->data, other.data, self->size * sizeof(*self->data)); \
     } \
     static inline int8_t *concat_layer2(_vector_default_tostring_, type)(id self) { \
         size_t bsize = 0; \
@@ -327,7 +349,8 @@ static inline int32_t _vector_default_hash(const void *) {
         .clear = concat_layer2(_vector_default_clear_, type), \
         .at = concat_layer2(_vector_default_at_, type), \
         .find = concat_layer2(_vector_default_find_, type), \
-        .copy = concat_layer2(_vector_default_copy_, type), \
+        .copy.vector = concat_layer2(_vector_default_copy_vector_, type), \
+        .copy.array = concat_layer2(_vector_default_copy_array_, type), \
         .toString = concat_layer2(_vector_default_tostring_, type), \
         .resize = concat_layer2(_vector_default_resize_, type), \
         .empty = concat_layer2(_vector_default_empty_, type), \

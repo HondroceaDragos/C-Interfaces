@@ -7,6 +7,9 @@
 
 #include "./fortype.h"
 
+typedef int32_t (*CmpFunc)(const void *, const void *);
+typedef int32_t (*HashFunc)(const void *);
+
 typedef enum : int8_t {
     RETAIN_MEMORY,
     FREE_MEMORY

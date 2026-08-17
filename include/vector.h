@@ -72,7 +72,8 @@ static inline void *_vector_next(Iterator i, size_t esize) {
         v->clear = (defaults.clear) ? defaults.clear : VectorVTableInstance(type).clear; \
         v->at = (defaults.at) ? defaults.at : VectorVTableInstance(type).at; \
         v->find = (defaults.find) ? defaults.find : VectorVTableInstance(type).find; \
-        v->copy = (defaults.copy) ? defaults.copy : VectorVTableInstance(type).copy; \
+        v->copy.vector = (defaults.copy.vector) ? defaults.copy.vector : VectorVTableInstance(type).copy.vector; \
+        v->copy.array = (defaults.copy.array) ? defaults.copy.array : VectorVTableInstance(type).copy.array; \
         v->toString = (defaults.toString) ? defaults.toString : VectorVTableInstance(type).toString; \
         v->resize = (defaults.resize) ? defaults.resize : VectorVTableInstance(type).resize; \
         v->empty = (defaults.empty) ? defaults.empty : VectorVTableInstance(type).empty; \

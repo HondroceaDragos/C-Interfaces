@@ -16,11 +16,11 @@ static inline int32_t _set_default_cmp(const void *, const void *) {
 }
 
 #define SetVTableFunctions(id, type) \
-    bool (*filter)(type, type); \
+    bool (*filter)(type); \
     int8_t *(*fmt)(const type); \
     int8_t *(*toString)(id); \
     void (*put)(id, type); \
-    void (*remove)(id, type); \
+    type (*remove)(id, type); \
     void (*clear)(id, MemoryCleanup); \
     type (*at)(id, int32_t); \
     int32_t (*find)(id, type); \
@@ -63,6 +63,9 @@ static inline int32_t _set_default_cmp(const void *, const void *) {
         self->size = 0; \
     } \
     static inline void concat_layer2(_set_default_put_, type)(id self, type elem) { \
+        if (self->filter) if (!self->filter(elem)) return; \
+        if (bsearch(&elem, self->data, self->size, sizeof(type), self->cmp)) return; \
+        \
         if (self->size == self->capacity) { \
             type *tmp = self->data; \
             tmp = realloc(self->data, 2 * self->capacity * sizeof(type)); \
@@ -72,9 +75,41 @@ static inline int32_t _set_default_cmp(const void *, const void *) {
             self->capacity *= 2; \
             self->data = tmp; \
         } \
-    } \
-    static inline void concat_layer2(_set_default_remove_, type)(id self, type target) { \
         \
+        size_t left = 0; \
+        size_t right = self->size; \
+        while (left < right) { \
+            size_t mid = (left + right) / 2; \
+            \
+            if (self->cmp(&self->data[mid], &elem) < 0) left = mid + 1; \
+            else right = mid; \
+        } \
+        \
+        memmove(self->data + left + 1, self->data + left, (self->size - left) * sizeof(type)); \
+        self->data[left] = elem; \
+        self->size++; \
+    } \
+    static inline type concat_layer2(_set_default_remove_, type)(id self, type target) { \
+        type *ret = (type *)bsearch(&target, self->data, self->size, sizeof(type), self->cmp); \
+        if (!ret) { \
+            if (self->fmt) { \
+                int8_t *warr = self->fmt(target); \
+                raise(WARNING, "Element " YELLOW "not in set" RESET ": %s. Set elements will remain unchanged.", warr); \
+                raise(WARNING, "Returning zero."); \
+                free(warr); \
+            } else { \
+                raise(WARNING, "Element " YELLOW "not in set" RESET ". Set elements will remain unchanged."); \
+                raise(WARNING, "Returning zero."); \
+            } \
+            return (type){0}; \
+        } \
+        \
+        size_t idx = ret - self->data; \
+        type elem = self->data[idx]; \
+        memmove(ret, ret + 1, (self->size - idx - 1) * sizeof(type)); \
+        self->size--; \
+        \
+        return elem; \
     } \
     static inline int32_t concat_layer2(_set_default_find_, type)(id self, type dst) { \
         type *item = (type *)bsearch(&dst, self->data, self->size, sizeof(type), self->cmp); \
@@ -117,8 +152,12 @@ static inline int32_t _set_default_cmp(const void *, const void *) {
                 self->capacity = new_cap; \
             } \
         } \
-        self->size = other->size; \
-        memcpy(self->data, other->data, self->size * sizeof(*self->data)); \
+        \
+        size_t ulen = 0; \
+        for (size_t idx = 0; idx < other->size; idx++) { \
+            if (self->filter) if (self->filter(other->data[idx])) self->data[ulen++] = other->data[idx]; \
+        } \
+        self->size = ulen; \
     } \
     static inline void concat_layer2(_set_default_copy_array_, type)(id self, concat_layer2(Array_, type) other, MemoryCleanup mc) { \
         if (mc == FREE_MEMORY) { \
@@ -139,6 +178,17 @@ static inline int32_t _set_default_cmp(const void *, const void *) {
                 self->capacity = new_cap; \
             } \
         } \
+        \
+        memcpy(self->data, other.data, other.size * sizeof(type)); \
+        self->size = other.size; \
+        qsort(self->data, self->size, sizeof(type), self->cmp); \
+        \
+        size_t ulen = 0; \
+        for (size_t idx = 0; idx < self->size; idx++) { \
+            if (self->filter) if (!self->filter(self->data[idx])) continue; \
+            if (self->cmp(&self->data[idx], &self->data[idx + 1])) self->data[ulen++] = self->data[idx]; \
+        } \
+        self->size = ulen; \
     } \
     static inline int8_t *concat_layer2(_set_default_tostring_, type)(id self) { \
         size_t bsize = 0; \
@@ -221,16 +271,110 @@ static inline int32_t _set_default_cmp(const void *, const void *) {
         return ret; \
     } \
     static inline id concat_layer2(_set_default_union_, type)(id self, id other) { \
-        return nullptr; \
+        id ret = calloc(1, sizeof(*ret)); \
+        if (!ret) { \
+            raise(ERROR, "Cannot " RED "create set " RESET "(out-of-memory). Returning nullptr."); \
+            return nullptr; \
+        } \
+        *ret = *self; \
+        ret->capacity = self->size + other->size; \
+        \
+        ret->data = calloc(ret->capacity, sizeof(type)); \
+        if (!ret->data) { \
+            free(ret); \
+            raise(ERROR, "Cannot " RED "create set " RESET "(out-of-memory)."); \
+            return nullptr; \
+        } \
+        \
+        ret->size = 0; \
+        \
+        for (size_t idx = 0; idx < self->size; idx++) ret->put(ret, self->data[idx]); \
+        for (size_t idx = 0; idx < other->size; idx++) ret->put(ret, other->data[idx]); \
+        \
+        return ret; \
     } \
     static inline id concat_layer2(_set_default_intersection_, type)(id self, id other) { \
-        return nullptr; \
+        id smaller = self; \
+        id bigger = other; \
+        size_t minlen = self->capacity; \
+        if (self->capacity > other->capacity) { \
+            smaller = other; \
+            minlen = other->size; \
+            bigger = self; \
+        } \
+        \
+        id ret = calloc(1, sizeof(*ret)); \
+        if (!ret) { \
+            raise(ERROR, "Cannot " RED "create set " RESET "(out-of-memory). Returning nullptr."); \
+            return nullptr; \
+        } \
+        *ret = *self; \
+        ret->capacity = minlen; \
+        \
+        ret->data = calloc(ret->capacity, sizeof(type)); \
+        if (!ret->data) { \
+            free(ret); \
+            raise(ERROR, "Cannot " RED "create set " RESET "(out-of-memory)."); \
+            return nullptr; \
+        } \
+        \
+        ret->size = 0; \
+        \
+        for (size_t idx = 0; idx < minlen; idx++) { \
+            type elem = smaller->data[idx]; \
+            if (bsearch(&elem, bigger->data, bigger->size, sizeof(type), smaller->cmp)) ret->put(ret, elem); \
+        } \
+        \
+        return ret; \
     } \
     static inline id concat_layer2(_set_default_sum_, type)(id self, id other) { \
-        return nullptr; \
+        id ret = calloc(1, sizeof(*ret)); \
+        if (!ret) { \
+            raise(ERROR, "Cannot " RED "create set " RESET "(out-of-memory). Returning nullptr."); \
+            return nullptr; \
+        } \
+        *ret = *self; \
+        ret->capacity = self->size + other->size; \
+        \
+        ret->data = calloc(ret->capacity, sizeof(type)); \
+        if (!ret->data) { \
+            free(ret); \
+            raise(ERROR, "Cannot " RED "create set " RESET "(out-of-memory)."); \
+            return nullptr; \
+        } \
+        \
+        ret->size = 0; \
+        ret->filter = nullptr; \
+        \
+        for (size_t idx = 0; idx < self->size; idx++) ret->put(ret, self->data[idx]); \
+        for (size_t idx = 0; idx < other->size; idx++) ret->put(ret, other->data[idx]); \
+        \
+        return ret; \
     } \
     static inline id concat_layer2(_set_default_diff_, type)(id self, id other) { \
-        return nullptr; \
+        id ret = calloc(1, sizeof(*ret)); \
+        if (!ret) { \
+            raise(ERROR, "Cannot " RED "create set " RESET "(out-of-memory). Returning nullptr."); \
+            return nullptr; \
+        } \
+        *ret = *self; \
+        ret->capacity = self->size; \
+        \
+        ret->data = calloc(ret->capacity, sizeof(type)); \
+        if (!ret->data) { \
+            free(ret); \
+            raise(ERROR, "Cannot " RED "create set " RESET "(out-of-memory)."); \
+            return nullptr; \
+        } \
+        \
+        ret->size = 0; \
+        \
+        for (size_t idx = 0; idx < self->size; idx++) { \
+            type elem = self->data[idx]; \
+            if (!bsearch(&elem, other->data, other->size, sizeof(type), self->cmp)) ret->put(ret, elem); \
+        } \
+        \
+        return ret; \
     } \
     static concat_layer2(SetVTable_, type) concat_layer2(SetVTable_, concat_layer2(set_, type)) = { \
         .fmt = concat_layer2(_set_default_fmt_, type), \

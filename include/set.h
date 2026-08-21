@@ -47,14 +47,24 @@ static inline void *_set_next(Iterator i, size_t esize) {
             return nullptr; \
         } \
         \
+        s->cmp = cmp; \
+        s->filter = (defaults.filter) ? defaults.filter : SetVTableInstance(type).filter; \
+        \
         if (defaults.using.data) { \
+            memcpy(s->data, defaults.using.data, defaults.using.size * sizeof(type)); \
+            s->size = defaults.using.size; \
+            qsort(s->data, s->size, sizeof(type), s->cmp); \
             \
+            size_t ulen = 0; \
+            for (size_t idx = 0; idx < s->size; idx++) { \
+                if (s->filter) if (!s->filter(s->data[idx])) continue; \
+                if (s->cmp(&s->data[idx], &s->data[idx + 1])) s->data[ulen++] = s->data[idx]; \
+            } \
+            s->size = ulen; \
         } \
         \
-        s->cmp = cmp; \
         s->fmt = (defaults.fmt) ? defaults.fmt : SetVTableInstance(type).fmt; \
         s->toString = (defaults.toString) ? defaults.toString : SetVTableInstance(type).toString; \
-        s->filter = (defaults.filter) ? defaults.filter : SetVTableInstance(type).filter; \
         \
         s->put = (defaults.put) ? defaults.put : SetVTableInstance(type).put; \
         s->remove = (defaults.remove) ? defaults.remove : SetVTableInstance(type).remove; \

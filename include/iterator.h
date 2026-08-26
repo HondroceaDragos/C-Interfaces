@@ -5,14 +5,14 @@
 #include "./raise.h"
 
 typedef struct _iterator {
-    void *ref;
+    const void *ref;
     size_t step;
     size_t size;
 } *Iterator;
 
 typedef void *(*IteratorNext)(Iterator, size_t esize);
 
-static inline Iterator newIterator(void *data, size_t size) {
+static inline Iterator newIterator(const void *data, size_t size) {
     Iterator i = (Iterator)calloc(1, sizeof(*i));
     if (!i) {
         raise(ERROR, "Cannot define " RED "iterator " RESET "(out-of-memory).");

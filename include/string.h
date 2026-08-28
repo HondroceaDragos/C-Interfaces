@@ -123,7 +123,10 @@ String newStringFmt(const i8* fmt, ...) {
 
     vsnprintf(data, slen, fmt, args);
 
-    return newStringPrimitive(data, slen);
+    String ret = newStringPrimitive(data, slen - 1);
+    free(data);
+
+    return ret;
 }
 
 str newStrFromString(String s, i32 start, i32 end) {
@@ -212,6 +215,7 @@ StringBuilder newStringBuilderPrimitive(const int8_t *s, size_t slen) {
     ret->sort = StringBuilderVTableInstance.sort;
 
     ret->consume = StringBuilderVTableInstance.consume;
+    ret->release = StringBuilderVTableInstance.release;
 
     return ret;
 }

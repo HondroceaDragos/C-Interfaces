@@ -23,7 +23,8 @@
     } trim; \
     id (*map)(id, funcMapCh); \
     id (*sort)(id, i32 (*cmp)(const void *, const void *)); \
-    String (*consume)(id *);
+    String (*consume)(id *); \
+    i8 *(*release)(id *);
 
 #define StringBuilderVTableType(id) \
     typedef struct _string_builder_vtable_ { \
@@ -216,6 +217,13 @@
         \
         return ret; \
     } \
+    static inline i8 *_string_builder_default_release(id *self) { \
+        i8 *ret = (*self)->data; \
+        free(*self); \
+        *self = nullptr; \
+        \
+        return ret; \
+    } \
     \
     static StringBuilderVTable StringBuilderVTableInstance = { \
             .reverse = _string_builder_default_reverse, \
@@ -231,6 +239,7 @@
             .map = _string_builder_default_map, \
             .sort = _string_builder_default_sort, \
             .consume = _string_builder_default_consume, \
+            .release = _string_builder_default_release, \
         }; \
 
 #endif

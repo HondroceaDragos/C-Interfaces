@@ -43,7 +43,7 @@ static inline void *_getNode_primitive(NodeLink *nl, size_t offset) {
             raise(ERROR, "Cannot " RED "create node " RESET "(out-of-memory)."); \
         } \
         \
-        n->value = defaults.value; \
+        memcpy(&n->value, &defaults.value, sizeof(n->value)); \
         n->link =  (defaults.link.next || defaults.link.prev) ? defaults.link : newNodeLink((struct _node_link){0}); \
         \
         n->fmt = (defaults.fmt) ? defaults.fmt : NodeVTableInstance(type).fmt; \

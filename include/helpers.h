@@ -9,6 +9,7 @@
 
 #include "./fortype.h"
 #include "./stdtypes.h"
+#include "./raise.h"
 
 typedef int32_t (*CmpFunc)(const void *, const void *);
 typedef int32_t (*HashFunc)(const void *);
@@ -35,6 +36,40 @@ typedef enum : int8_t {
         (a) = (b); \
         (b) = _tmp; \
     } while (false);
+
+#define debug(v) \
+    do { \
+        i8 *s = (v)->toString((v)); \
+        printf("%s\n", s); \
+        free(s); \
+    } while (false);
+
+static inline i8 *cstrfmt(const i8* fmt, ...) {
+    va_list args;
+    va_list tmp;
+
+    va_start(args, fmt);
+    va_copy(tmp, args);
+
+    i32 slen = vsnprintf(nullptr, 0, fmt, tmp);
+    va_end(tmp);
+
+    if (slen < 0) {
+        va_end(args);
+        raise(ERROR, "Cannot " RED "create cstrfmt " RESET "(out-of-memory).");
+    }
+
+    slen += 1;
+    i8 *data = calloc(slen, sizeof(*data));
+    if (!data) {
+        va_end(args);
+        raise(ERROR, "Cannot " RED "create cstrfmt " RESET "(out-of-memory).");
+    }
+
+    vsnprintf(data, slen, fmt, args);
+
+    return data;
+}
 
 #define defer(func) [[gnu::cleanup(func)]]
 

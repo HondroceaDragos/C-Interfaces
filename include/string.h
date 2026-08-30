@@ -34,7 +34,7 @@ typedef struct _string {
 
 StringVTableType(String)
 
-String newStringPrimitive(const int8_t *s, size_t slen) {
+static inline String newStringPrimitive(const int8_t *s, size_t slen) {
     String ret = (String)calloc(1, sizeof(*ret));
     if (!ret) {
         raise(ERROR, "Cannot " RED "create string " RESET "(out-of-memory).");
@@ -80,19 +80,21 @@ String newStringPrimitive(const int8_t *s, size_t slen) {
 
     ret->sort = StringVTableInstance.sort;
 
+    ret->toString = StringVTableInstance.toString;
+
     return ret;
 }
 
-String newStringFromCStr(const int8_t *s) {
+static inline String newStringFromCStr(const int8_t *s) {
     const int8_t *data = (s) ? s : (const int8_t *)"";
     return newStringPrimitive(data, strlen(data));
 }
 
-String newStringFromStr(str s) {
+static inline String newStringFromStr(str s) {
     return newStringPrimitive(s.data, s.size);
 }
 
-String newStringFromString(String s) {
+static inline String newStringFromString(String s) {
     return newStringPrimitive(s->data, s->size);
 }
 
@@ -102,12 +104,15 @@ String newStringFromString(String s) {
     default: newStringFromCStr \
 )(s)
 
-String newStringFmt(const i8* fmt, ...) {
+static inline String newStringFmt(const i8* fmt, ...) {
     va_list args;
+    va_list tmp;
 
     va_start(args, fmt);
+    va_copy(tmp, args);
 
-    i32 slen = vsnprintf(nullptr, 0, fmt, args);
+    i32 slen = vsnprintf(nullptr, 0, fmt, tmp);
+    va_end(tmp);
 
     if (slen < 0) {
         va_end(args);
@@ -129,7 +134,7 @@ String newStringFmt(const i8* fmt, ...) {
     return ret;
 }
 
-str newStrFromString(String s, i32 start, i32 end) {
+static inline str newStrFromString(String s, i32 start, i32 end) {
     size_t size = s->size;
 
     if (start < 0 || end < 0) {
@@ -181,7 +186,7 @@ typedef struct _string_builder {
 
 StringBuilderVTableType(StringBuilder)
 
-StringBuilder newStringBuilderPrimitive(const int8_t *s, size_t slen) {
+static inline StringBuilder newStringBuilderPrimitive(const int8_t *s, size_t slen) {
     StringBuilder ret = (StringBuilder)calloc(1, sizeof(*ret));
     if (!ret) {
         raise(ERROR, "Cannot " RED "create StringBuilder " RESET "(out-of-memory).");
@@ -220,16 +225,16 @@ StringBuilder newStringBuilderPrimitive(const int8_t *s, size_t slen) {
     return ret;
 }
 
-StringBuilder newStringBuilderFromCStr(const int8_t *s) {
+static inline StringBuilder newStringBuilderFromCStr(const int8_t *s) {
     const int8_t *data = (s) ? s : (const int8_t *)"";
     return newStringBuilderPrimitive(data, strlen(data));
 }
 
-StringBuilder newStringBuilderFromStr(str s) {
+static inline StringBuilder newStringBuilderFromStr(str s) {
     return newStringBuilderPrimitive(s.data, s.size);
 }
 
-StringBuilder newStringBuilderFromString(String s) {
+static inline StringBuilder newStringBuilderFromString(String s) {
     return newStringBuilderPrimitive(s->data, s->size);
 }
 
@@ -238,6 +243,36 @@ StringBuilder newStringBuilderFromString(String s) {
     str: newStringBuilderFromStr, \
     default: newStringBuilderFromCStr \
 )(s)
+
+static inline StringBuilder newStringBuilderFmt(const i8* fmt, ...) {
+    va_list args;
+    va_list tmp;
+
+    va_start(args, fmt);
+    va_copy(tmp, args);
+
+    i32 slen = vsnprintf(nullptr, 0, fmt, tmp);
+    va_end(tmp);
+
+    if (slen < 0) {
+        va_end(args);
+        raise(ERROR, "Cannot " RED "create string " RESET "(out-of-memory).");
+    }
+
+    slen += 1;
+    i8 *data = calloc(slen, sizeof(*data));
+    if (!data) {
+        va_end(args);
+        raise(ERROR, "Cannot " RED "create string " RESET "(out-of-memory).");
+    }
+
+    vsnprintf(data, slen, fmt, args);
+
+    StringBuilder ret = newStringBuilderPrimitive(data, slen - 1);
+    free(data);
+
+    return ret;
+}
 
 #define forString_primitive(i, once, str, acc) \
     for (Iterator i = newIterator((str)->data, (str)->size); i && i->size; iterator_advance(&i, _string_next, 1)) \

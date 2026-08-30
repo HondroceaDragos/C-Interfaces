@@ -15,7 +15,9 @@
             .first = defaults.first, \
             .second = defaults.second \
         }; \
-    }
+    } \
+    \
+    deleteType(Pair(fst, snd)) \
 
 #define Pair(fst, snd) concat_layer2(Pair_, concat_layer2(fst, snd))
 #define newPair(fst, snd, ...) concat_layer2(newPair_, concat_layer2(fst, snd))((struct concat_layer2(_pair_, concat_layer2(fst, snd)))__VA_ARGS__)

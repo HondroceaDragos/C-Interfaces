@@ -15,11 +15,9 @@
 #define DICT_DEFAULT_SIZE 32
 #define DICT_DEFAULT_LOAD_FACTOR 0.75
 
-typedef LinkedList * Bucket;
-
 #define DictType(type) \
     typedef struct concat_layer2(_dict_, type) { \
-        Bucket data; \
+        Bucket **data; \
         size_t size; \
         size_t capacity; \
         double loadFactor; \
@@ -30,7 +28,7 @@ typedef LinkedList * Bucket;
     DictVTableType(concat_layer2(Dict_, type), type) \
     \
     struct concat_layer2(_dict_defaults_, type) { \
-        Array(Tuple(DictKey, type)) using; \
+        Array(Pair(DictKey, type)) using; \
         size_t capacity; \
         size_t loadFactor; \
         DictVTableFunctions(concat_layer2(Dict_, type), type) \
@@ -53,18 +51,6 @@ typedef LinkedList * Bucket;
             raise(ERROR, "Cannot create dict " RED "(out-of-memory)" RESET ". Returning nullptr."); \
             return nullptr; \
         } \
-        for (size_t idx = 0; idx < d->capacity; idx++) { \
-            d->data[idx] = newLinkedList(); \
-            if (!d->data[idx]) { \
-                for (size_t jdx = 0; jdx < idx; jdx++) { \
-                    delete(LinkedList)(&d->data[jdx]); \
-                } \
-                free(d->data); \
-                free(d); \
-                raise(ERROR, "Cannot create dict " RED "(out-of-memory)" RESET ". Returning nullptr."); \
-                return nullptr; \
-            } \
-        } \
         \
         d->fmt = (defaults.fmt) ? defaults.fmt : DictVTableInstance(type).fmt; \
         d->toString = (defaults.toString) ? defaults.toString : DictVTableInstance(type).toString; \
@@ -73,6 +59,8 @@ typedef LinkedList * Bucket;
             \
         } \
         d->emplace = (defaults.emplace) ? defaults.emplace : DictVTableInstance(type).emplace; \
+        d->get = (defaults.get) ? defaults.get : DictVTableInstance(type).get; \
+        d->put = (defaults.put) ? defaults.put : DictVTableInstance(type).put; \
         \
         return d; \
     } \

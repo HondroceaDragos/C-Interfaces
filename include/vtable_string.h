@@ -40,7 +40,8 @@ typedef i8 (*funcMapCh)(i8);
         bool (*str)(id, str); \
         bool (*string)(id, id); \
     } cmp; \
-    id (*sort)(id, i32 (*cmp)(const void *, const void *));
+    id (*sort)(id, i32 (*cmp)(const void *, const void *)); \
+    i8 *(*toString)(id);
 
 #define StringVTableType(id) \
     typedef struct _string_vtable_ { \
@@ -334,6 +335,9 @@ typedef i8 (*funcMapCh)(i8);
         \
         return ret; \
     } \
+    static inline i8 *_string_default_toString(id self) { \
+        return strdup(self->data); \
+    } \
     \
     static StringVTable StringVTableInstance = { \
             .reverse = _string_default_reverse, \
@@ -358,6 +362,7 @@ typedef i8 (*funcMapCh)(i8);
             .cmp.str = _string_default_cmp_str, \
             .cmp.string = _string_default_cmp_string, \
             .sort = _string_default_sort, \
+            .toString = _string_default_toString, \
         }; \
 
 #endif

@@ -6,18 +6,17 @@
 #include "./raise.h"
 #include "./iterator.h"
 #include "./node.h"
-#include "./tuple.h"
-#include "./list.h"
+#include "./pair.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define DICT_DEFAULT_SIZE 32
+#define DICT_DEFAULT_SIZE 16
 #define DICT_DEFAULT_LOAD_FACTOR 0.75
 
 #define DictType(type) \
     typedef struct concat_layer2(_dict_, type) { \
-        Bucket **data; \
+        Node(Pair(DictKey, type)) *data; \
         size_t size; \
         size_t capacity; \
         double loadFactor; \
@@ -56,11 +55,17 @@
         d->toString = (defaults.toString) ? defaults.toString : DictVTableInstance(type).toString; \
         \
         if (defaults.using.data) { \
-            \
+            for (size_t idx = 0; idx < defaults.using.size; idx++) { \
+                concat_layer2(_dict_default_put_, type)(d, defaults.using.data[idx]); \
+            } \
         } \
         d->emplace = (defaults.emplace) ? defaults.emplace : DictVTableInstance(type).emplace; \
         d->get = (defaults.get) ? defaults.get : DictVTableInstance(type).get; \
         d->put = (defaults.put) ? defaults.put : DictVTableInstance(type).put; \
+        \
+        d->currLoad = (defaults.currLoad) ? defaults.currLoad : DictVTableInstance(type).currLoad; \
+        d->contains = (defaults.contains) ? defaults.contains : DictVTableInstance(type).contains; \
+        d->remove = (defaults.remove) ? defaults.remove : DictVTableInstance(type).remove; \
         \
         return d; \
     } \

@@ -4,8 +4,8 @@
 #include "./helpers.h"
 
 typedef enum : ui8 {
-    Left,
-    Right
+    Left = 1,
+    Right = 2
 } OptionTag;
 
 #define OptionType(type) \
@@ -18,6 +18,7 @@ typedef enum : ui8 {
     } concat_layer2(Option_, type); \
     \
     typedef struct _option_##type##_default { \
+        OptionTag side; \
         const ui8 *left; \
         type right; \
     } concat_layer2(Od_, type); \
@@ -25,23 +26,16 @@ typedef enum : ui8 {
     static inline concat_layer2(Option_, type) concat_layer2(newOption_, type)(concat_layer2(Od_, type) defaults) { \
         concat_layer2(Option_, type) e = {}; \
         \
-        if (defaults.left && defaults.right) { \
-            raise(ERROR, "Cannot create a " RED "dual-type option" RESET "."); \
-        } \
+        if (defaults.left && defaults.right) raise(ERROR, "Cannot create a " RED "dual-type option" RESET "."); \
+        if (!defaults.side) raise(ERROR, "Cannot create a " RED "dual-type option" RESET "."); \
         \
-        if (defaults.left) { \
-            e.side = Left; \
-            e.left = defaults.left; \
-        } else if (defaults.right) { \
-            e.side = Right; \
-            e.right = defaults.right; \
-        } else { \
-            e.side = Left; \
-            e.left = "Unspecified Error"; \
-        } \
+        e.side = defaults.side; \
+        if (e.side == Left) e.left = defaults.left; \
+        if (e.side == Right) e.right = defaults.right; \
         \
         return e; \
-    }
+    } \
+    deleteType(Option(type))
 
 #define Option(type) concat_layer2(Option_, type)
 #define newOption(type, ...) concat_layer2(newOption_, type)((concat_layer2(Od_, type)){__VA_ARGS__})

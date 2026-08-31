@@ -12,7 +12,7 @@ typedef struct _bucket {
 } Bucket;
 
 static inline Bucket *newBucket(void) {
-    Bucket *b = calloc(1, sizeof(Bucket));
+    Bucket *b = (Bucket *)calloc(1, sizeof(Bucket));
     if (!b) raise(ERROR, "Cannot " RED "create bucket" RESET " (out-of memory).");
 }
 

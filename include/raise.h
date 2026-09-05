@@ -8,7 +8,9 @@
 #define YELLOW "\033[38;2;255;234;0m"
 #define RESET "\033[0m"
 
-typedef enum _raise_code {
+#undef ERROR
+
+typedef enum _raise_code : ui8 {
     ERROR,
     WARNING
 } RaiseCode;

@@ -1,6 +1,8 @@
 #ifndef STDC_H
 #define STDC_H
 
+#include "helpers.h"
+#include "raise.h"
 #include "array.h"
 #include "vector.h"
 #include "pair.h"

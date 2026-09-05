@@ -24,7 +24,8 @@
     id (*map)(id, funcMapCh); \
     id (*sort)(id, i32 (*cmp)(const void *, const void *)); \
     String (*consume)(id *); \
-    i8 *(*release)(id *);
+    i8 *(*release)(id *); \
+    id (*append)(id, i8);
 
 #define StringBuilderVTableType(id) \
     typedef struct _string_builder_vtable_ { \
@@ -224,6 +225,27 @@
         \
         return ret; \
     } \
+    static inline id _string_builder_default_append(id self, i8 ch) { \
+        if (!self || !self->data) { \
+            raise(ERROR, " RED ""Invalid reference " RESET "used for StringBuilder. Failed at: " RED "append" RESET "."); \
+            raise(ERROR, "Returning nullptr."); \
+            return nullptr; \
+        } \
+        i8 *data = self->data; \
+        size_t size = self->size + 1; \
+        \
+        i8 *tmp = realloc(data, size + 1); \
+        if (!tmp) raise(ERROR, "Cannot " RED "create string " RESET "(out-of-memory)."); \
+        \
+        data = tmp; \
+        data[self->size] = ch; \
+        data[size] = '\0'; \
+        \
+        self->data = data; \
+        self->size = size; \
+        \
+        return self; \
+    } \
     \
     static StringBuilderVTable StringBuilderVTableInstance = { \
             .reverse = _string_builder_default_reverse, \
@@ -240,6 +262,7 @@
             .sort = _string_builder_default_sort, \
             .consume = _string_builder_default_consume, \
             .release = _string_builder_default_release, \
+            .append = _string_builder_default_append, \
         }; \
 
 #endif

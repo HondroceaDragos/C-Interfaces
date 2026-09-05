@@ -15,7 +15,7 @@ typedef struct _str {
     size_t size;
 } str;
 
-str newStr(const int8_t *c_str) {
+static inline str newStr(const int8_t *c_str) {
     return (str){
         .data = c_str,
         .size = strlen((const char *)c_str)
@@ -221,6 +221,8 @@ static inline StringBuilder newStringBuilderPrimitive(const int8_t *s, size_t sl
 
     ret->consume = StringBuilderVTableInstance.consume;
     ret->release = StringBuilderVTableInstance.release;
+
+    ret->append = StringBuilderVTableInstance.append;
 
     return ret;
 }

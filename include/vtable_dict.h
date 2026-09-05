@@ -18,7 +18,7 @@ deleteDefine(DictKey) {
     free((void *)*self);
 }
 
-const ui64 dict_default_hash(DictKey data, size_t dataSize, size_t dictCap) {
+static inline const ui64 dict_default_hash(DictKey data, size_t dataSize, size_t dictCap) {
     size_t seed = 5381;
     for (size_t idx = 0; idx < dataSize; idx++) {
         seed = ((seed << 5) + seed) + data[idx];

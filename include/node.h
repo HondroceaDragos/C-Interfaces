@@ -55,6 +55,4 @@ static inline void *_getNode_primitive(NodeLink *nl, size_t offset) {
 #define Node(type) concat_layer2(Node_, type)
 #define newNode(type, ...) concat_layer2(newNode_, type)((struct concat_layer2(_node_, type)){__VA_ARGS__})
 
-#define link(...) newNodeLink((struct _node_link){__VA_ARGS__})
-
 #endif

@@ -113,6 +113,7 @@
             self->tail->link.next = nullptr; \
         } \
         \
+        free(n); \
         self->size--; \
         \
         return ret; \
@@ -135,6 +136,7 @@
             self->head->link.prev = nullptr; \
         } \
         \
+        free(n); \
         self->size--; \
         \
         return ret; \

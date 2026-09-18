@@ -16,5 +16,6 @@
 #include "stdtypes.h"
 #include "option.h"
 #include "dict.h"
+#include "stack.h"
 
 #endif

@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "stdtypes.h"
 
 #define RED "\033[38;2;234;23;12m"
 #define YELLOW "\033[38;2;255;234;0m"

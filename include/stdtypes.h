@@ -18,4 +18,6 @@ typedef double f64;
 
 typedef void *vp;
 
+typedef const i8 *c_str;
+
 #endif

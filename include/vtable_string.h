@@ -214,13 +214,13 @@ typedef i8 (*funcMapCh)(i8);
         return ret; \
     } \
     static inline id _string_default_trim_left(id self) { \
-        _string_trim_primitive(self, 1); \
+        return _string_trim_primitive(self, 1); \
     } \
     static inline id _string_default_trim_right(id self) { \
-        _string_trim_primitive(self, 2); \
+        return _string_trim_primitive(self, 2); \
     } \
     static inline id _string_default_trim_both(id self) { \
-        _string_trim_primitive(self, 3); \
+        return _string_trim_primitive(self, 3); \
     } \
     static inline id *_string_tokenize_primitive(id self, const i8 *data, size_t len) { \
         size_t size = self->size; \

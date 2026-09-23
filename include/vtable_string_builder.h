@@ -176,13 +176,13 @@
         return self; \
     } \
     static inline id _string_builder_default_trim_left(id self) { \
-        _string_builder_trim_primitive(self, 1); \
+        return _string_builder_trim_primitive(self, 1); \
     } \
     static inline id _string_builder_default_trim_right(id self) { \
-        _string_builder_trim_primitive(self, 2); \
+        return _string_builder_trim_primitive(self, 2); \
     } \
     static inline id _string_builder_default_trim_both(id self) { \
-        _string_builder_trim_primitive(self, 3); \
+        return _string_builder_trim_primitive(self, 3); \
     } \
     static inline id _string_builder_default_map(id self, funcMapCh map) { \
         if (!self || !self->data) { \
